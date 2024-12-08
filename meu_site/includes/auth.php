@@ -1,9 +1,6 @@
-
 <?php
-session_start();
-require_once 'db.php';
-
-include_once 'db.php';
+session_start();  // Chama session_start() logo no início
+require_once 'db.php';  // Inclui db.php uma única vez
 
 function cadastrarUsuario($nome, $email, $senha) {
     global $pdo;
@@ -50,7 +47,6 @@ function login($nome, $password) {
     }
     return false;
 }
-
 
 // Verifica se usuário está logado
 function is_logged_in() {
