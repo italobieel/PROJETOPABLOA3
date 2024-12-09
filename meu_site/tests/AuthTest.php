@@ -20,11 +20,14 @@ class AuthTest extends TestCase {
 
     public function testLoginValido() {
         // Configurar o comportamento esperado para um login válido
+        $senhaHash = password_hash('admin123', PASSWORD_DEFAULT);
+
         $this->mockStmt->method('execute')->willReturn(true);
         $this->mockStmt->method('fetch')->willReturn([
             'id' => 1,
-            'username' => 'admin',
-            'senha' => password_hash('admin123', PASSWORD_DEFAULT),  // Usando password_hash em vez de md5
+            'nome' => 'admin',
+            'email' => 'admin@example.com', // Adicionado email ao mock
+            'senha' => $senhaHash,
             'role' => 'admin',
         ]);
         $this->mockPdo->method('prepare')->willReturn($this->mockStmt);
@@ -35,18 +38,25 @@ class AuthTest extends TestCase {
 
     public function testLoginInvalido() {
         // Configurar o comportamento esperado para login com senha incorreta
+        $senhaHash = password_hash('admin123', PASSWORD_DEFAULT);
+
         $this->mockStmt->method('execute')->willReturn(true);
-        $this->mockStmt->method('fetch')->willReturn(false);  // Usuário não encontrado
+        $this->mockStmt->method('fetch')->willReturn([
+            'id' => 1,
+            'nome' => 'admin',
+            'senha' => $senhaHash,
+            'role' => 'admin',
+        ]);
         $this->mockPdo->method('prepare')->willReturn($this->mockStmt);
 
-        // Testar login inválido
+        // Testar login com senha errada
         $this->assertFalse(login('admin', 'senha_errada'));
     }
 
     public function testLoginUsuarioNaoExistente() {
         // Configurar o comportamento esperado para login com usuário não existente
         $this->mockStmt->method('execute')->willReturn(true);
-        $this->mockStmt->method('fetch')->willReturn(false);  // Usuário não encontrado
+        $this->mockStmt->method('fetch')->willReturn(false); // Usuário não encontrado
         $this->mockPdo->method('prepare')->willReturn($this->mockStmt);
 
         // Testar login com usuário não existente
@@ -54,16 +64,35 @@ class AuthTest extends TestCase {
     }
 
     public function testCadastroUsuario() {
-        // Testando o cadastro de um novo usuário
         $nome = "Teste";
         $email = "teste@teste.com";
         $senha = "123456";
-        
-        // Supondo que a função cadastrarUsuario seja definida corretamente
-        // e retorne uma mensagem de sucesso
-        $resultado = cadastrarUsuario($nome, $email, $senha);
 
-        // Verificando se o retorno da função é o esperado
+        // Mock para verificar se o email já existe
+        $this->mockStmt->method('execute')->willReturn(true);
+        $this->mockStmt->method('fetchColumn')->willReturn(0); // Email não cadastrado
+        $this->mockPdo->method('prepare')->willReturn($this->mockStmt);
+
+        // Mock para inserir novo usuário
+        $this->mockStmt->method('execute')->willReturn(true);
+
+        // Testar cadastro
+        $resultado = cadastrarUsuario($nome, $email, $senha);
         $this->assertEquals("Cadastro realizado com sucesso!", $resultado);
+    }
+
+    public function testCadastroUsuarioEmailExistente() {
+        $nome = "Teste";
+        $email = "teste@teste.com";
+        $senha = "123456";
+
+        // Mock para verificar que o email já existe
+        $this->mockStmt->method('execute')->willReturn(true);
+        $this->mockStmt->method('fetchColumn')->willReturn(1); // Email já cadastrado
+        $this->mockPdo->method('prepare')->willReturn($this->mockStmt);
+
+        // Testar cadastro com email existente
+        $resultado = cadastrarUsuario($nome, $email, $senha);
+        $this->assertEquals("Este email já está cadastrado!", $resultado);
     }
 }
